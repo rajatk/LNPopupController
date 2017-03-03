@@ -54,8 +54,8 @@
 @interface MarqueeLabel () <__MarqueeLabelType> @end
 
 const CGFloat LNPopupBarHeightCompact = 40.0;
-const CGFloat LNPopupBarHeightProminent = 64.0;
-const CGFloat LNPopupBarProminentImageWidth = 48.0;
+const CGFloat LNPopupBarHeightProminent = 60.0;
+const CGFloat LNPopupBarProminentImageWidth = 44.0;
 
 const NSInteger LNBackgroundStyleInherit = -1;
 
@@ -103,6 +103,18 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 }
 
 @synthesize backgroundStyle = _userBackgroundStyle, barTintColor = _userBarTintColor;
+
+- (CGFloat)getHeight
+{
+    switch (_barStyle) {
+        case LNPopupBarStyleProminent:
+            return LNPopupBarHeightProminent;
+        case LNPopupBarStyleCompact:
+            return LNPopupBarHeightCompact;
+        default:
+            return 0;
+    }
+}
 
 - (void)setHidden:(BOOL)hidden
 {
@@ -185,7 +197,7 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 		
 		_imageView = [UIImageView new];
 		_imageView.autoresizingMask = UIViewAutoresizingNone;
-		_imageView.contentMode = UIViewContentModeScaleAspectFit;
+		_imageView.contentMode = UIViewContentModeScaleAspectFill;
 		_imageView.accessibilityTraits = UIAccessibilityTraitImage;
 		_imageView.isAccessibilityElement = YES;
 		_imageView.layer.cornerRadius = 3;

@@ -68,6 +68,7 @@ typedef NS_ENUM(NSUInteger, LNPopupBarStyle) {
  */
 @interface LNPopupBar : UIView <UIAppearanceContainer>
 
+- (CGFloat)getHeight;
 /**
  *  The currently displayed popup item. (read-only)
  */
