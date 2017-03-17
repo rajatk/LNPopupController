@@ -106,6 +106,9 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 
 - (CGFloat)getHeight
 {
+    return LNPopupBarHeightProminent;
+    // disabling switch, bc we know we're using Prominent style, and in case LNPopup instance somehow gets reset and reverts to default style (a bug that has been observed only when connected to Xcode), we should make sure the height stays correct
+    /*
     switch (_barStyle) {
         case LNPopupBarStyleProminent:
             return LNPopupBarHeightProminent;
@@ -114,6 +117,7 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
         default:
             return 0;
     }
+     */
 }
 
 - (void)setHidden:(BOOL)hidden
