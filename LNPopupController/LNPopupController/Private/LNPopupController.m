@@ -201,7 +201,9 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 	LNPopupCloseButtonStyle rv = style;
 	if(rv == LNPopupCloseButtonStyleDefault)
 	{
-		rv = [[NSProcessInfo processInfo] operatingSystemVersion].majorVersion > 9 ? LNPopupCloseButtonStyleChevron : LNPopupCloseButtonStyleRound;
+        // make None the default style, bc we know we want to use our own buttons, and in case LNPopup instance somehow gets reset and reverts to default style (a bug that has been observed only when connected to Xcode), we should make sure foreign buttons don't appear
+        rv = LNPopupCloseButtonStyleNone;
+		// rv = [[NSProcessInfo processInfo] operatingSystemVersion].majorVersion > 9 ? LNPopupCloseButtonStyleChevron : LNPopupCloseButtonStyleRound;
 	}
 	return rv;
 }
