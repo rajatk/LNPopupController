@@ -550,8 +550,9 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	if(_dismissGestureStarted == NO && (resolvedStyle == LNPopupInteractionStyleDrag || _popupControllerState > LNPopupPresentationStateClosed))
 	{
 		_lastSeenMovement = CACurrentMediaTime();
-		_popupBarLongPressGestureRecognizer.enabled = NO;
-		_popupBarLongPressGestureRecognizer.enabled = YES;
+		BOOL prevState = self.popupBar.barHighlightGestureRecognizer.enabled;
+		self.popupBar.barHighlightGestureRecognizer.enabled = NO;
+		self.popupBar.barHighlightGestureRecognizer.enabled = prevState;
 		_lastPopupBarLocation = self.popupBar.center;
 		
 		_statusBarThresholdDir = _popupControllerState == LNPopupPresentationStateOpen ? 1 : -1;
@@ -852,7 +853,15 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	{
 		NSString* str2 = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:bVsVbC options:0] encoding:NSUTF8StringEncoding];
 		
-		self.popupBar.systemShadowColor = [_bottomBar valueForKeyPath:str2];
+		
+		if([[NSProcessInfo processInfo] operatingSystemVersion].majorVersion >= 10)
+		{
+			self.popupBar.systemShadowColor = [_bottomBar valueForKeyPath:str2];
+		}
+		else
+		{
+			self.popupBar.systemShadowColor = [UIColor lightGrayColor];
+		}
 	}
 #endif
 }
@@ -873,6 +882,28 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	[self.popupBar.superview insertSubview:self.popupContentView belowSubview:self.popupBar];
 }
 
+- (UIView*)_view:(UIView*)view selfOrSuperviewKindOfClass:(Class)aClass
+{
+	if([view isKindOfClass:aClass])
+	{
+		return view;
+	}
+	
+	UIView* superview = view.superview;
+	
+	while(superview != nil)
+	{
+		if([superview isKindOfClass:aClass])
+		{
+			return superview;
+		}
+		
+		superview = superview.superview;
+	}
+	
+	return nil;
+}
+
 - (void)_repositionPopupCloseButton
 {
 	CGFloat startingTopConstant = _popupCloseButtonTopConstraint.constant;
@@ -880,8 +911,9 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	_popupCloseButtonTopConstraint.constant = _popupContentView.popupCloseButton.style == LNPopupCloseButtonStyleRound ? 12 : 8;
 	_popupCloseButtonTopConstraint.constant += ([UIApplication sharedApplication].isStatusBarHidden ? 0 : [UIApplication sharedApplication].statusBarFrame.size.height);
 	
-	UINavigationBar* possibleBar = (id)[[_currentContentController view] hitTest:CGPointMake(12, _popupCloseButtonTopConstraint.constant) withEvent:nil];
-	if([possibleBar isKindOfClass:[UINavigationBar class]])
+	id hitTest = [[_currentContentController view] hitTest:CGPointMake(12, _popupCloseButtonTopConstraint.constant) withEvent:nil];
+	UINavigationBar* possibleBar = (id)[self _view:hitTest selfOrSuperviewKindOfClass:[UINavigationBar class]];
+	if(possibleBar)
 	{
 		_popupCloseButtonTopConstraint.constant += CGRectGetHeight(possibleBar.bounds);
 	}
@@ -915,7 +947,6 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 		[_popupContentView.popupCloseButton setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];
 		
 		_popupCloseButtonTopConstraint = [_popupContentView.popupCloseButton.topAnchor constraintEqualToAnchor:_popupContentView.topAnchor constant:buttonStyle == LNPopupCloseButtonStyleRound ? 12 : 8];
-		_popupCloseButtonTopConstraint.active = YES;
 		
 		if(buttonStyle == LNPopupCloseButtonStyleRound)
 		{
@@ -925,7 +956,8 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 		{
 			_popupCloseButtonHorizontalConstraint = [_popupContentView.popupCloseButton.centerXAnchor constraintEqualToAnchor:_popupContentView.centerXAnchor];
 		}
-		_popupCloseButtonHorizontalConstraint.active = YES;
+		
+		[NSLayoutConstraint activateConstraints:@[_popupCloseButtonTopConstraint, _popupCloseButtonHorizontalConstraint]];
 	}
 }
 
@@ -939,6 +971,17 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	_popupBar = [LNPopupBar new];
 	_popupBar.hidden = YES;
 	_popupBar._barDelegate = self;
+	_popupBar.popupOpenGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(_popupBarTapGestureRecognized:)];
+	[_popupBar addGestureRecognizer:_popupBar.popupOpenGestureRecognizer];
+	
+	_popupBarLongPressGestureRecognizerDelegate = [LNPopupControllerLongPressGestureDelegate new];
+	_popupBar.barHighlightGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(_popupBarLongPressGestureRecognized:)];
+	_popupBar.barHighlightGestureRecognizer.minimumPressDuration = 0;
+	_popupBar.barHighlightGestureRecognizer.cancelsTouchesInView = NO;
+	_popupBar.barHighlightGestureRecognizer.delaysTouchesBegan = NO;
+	_popupBar.barHighlightGestureRecognizer.delaysTouchesEnded = NO;
+	_popupBar.barHighlightGestureRecognizer.delegate = _popupBarLongPressGestureRecognizerDelegate;
+	[_popupBar addGestureRecognizer:_popupBar.barHighlightGestureRecognizer];
 	
 	return _popupBar;
 }
@@ -1044,18 +1087,6 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 		[self _movePopupBarAndContentToBottomBarSuperview];
 		[self _configurePopupBarFromBottomBar];
 		
-		_popupBarLongPressGestureRecognizerDelegate = [LNPopupControllerLongPressGestureDelegate new];
-		_popupBarLongPressGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(_popupBarLongPressGestureRecognized:)];
-		_popupBarLongPressGestureRecognizer.minimumPressDuration = 0;
-		_popupBarLongPressGestureRecognizer.cancelsTouchesInView = NO;
-		_popupBarLongPressGestureRecognizer.delaysTouchesBegan = NO;
-		_popupBarLongPressGestureRecognizer.delaysTouchesEnded = NO;
-		_popupBarLongPressGestureRecognizer.delegate = _popupBarLongPressGestureRecognizerDelegate;
-		[_popupBar addGestureRecognizer:_popupBarLongPressGestureRecognizer];
-		
-		_popupBarTapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(_popupBarTapGestureRecognized:)];
-		[self.popupBar addGestureRecognizer:_popupBarTapGestureRecognizer];
-		
 		[self.popupBar addGestureRecognizer:self.popupContentView.popupInteractionGestureRecognizer];
 		
 		[self _setContentToState:LNPopupPresentationStateClosed];
@@ -1152,10 +1183,6 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 				 self.popupContentView.popupInteractionGestureRecognizer = nil;
 				 [self.popupContentView removeObserver:self forKeyPath:@"popupCloseButtonStyle"];
 				 self.popupContentView = nil;
-				 
-				 _popupBarLongPressGestureRecognizerDelegate = nil;
-				 _popupBarLongPressGestureRecognizer = nil;
-				 _popupBarTapGestureRecognizer = nil;
 				 
 				 _LNPopupSupportFixInsetsForViewController(_containerController, YES);
 				 

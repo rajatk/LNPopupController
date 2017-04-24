@@ -170,6 +170,7 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 		
 		_backgroundView = [[UIVisualEffectView alloc] initWithEffect:nil];
 		_backgroundView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+		_backgroundView.userInteractionEnabled = NO;
 		[self addSubview:_backgroundView];
 		
 		[self _innerSetBackgroundStyle:LNBackgroundStyleInherit];
@@ -181,19 +182,20 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 		[self addSubview:_toolbar];
 		
 		_titlesView = [[UIView alloc] initWithFrame:self.bounds];
-		_titlesView.userInteractionEnabled = NO;
+//		_titlesView.userInteractionEnabled = YES;
 		_titlesView.autoresizingMask = UIViewAutoresizingNone;
 		
-		_titlesView.accessibilityTraits = UIAccessibilityTraitButton;
-		_titlesView.isAccessibilityElement = YES;
+		_backgroundView.accessibilityTraits = UIAccessibilityTraitButton;
+//		_backgroundView.isAccessibilityElement = YES;
+		_backgroundView.accessibilityIdentifier = @"PopupBarView";
 		
 		[self _setNeedsTitleLayout];
-		[self.toolbar addSubview:_titlesView];
+		[_backgroundView addSubview:_titlesView];
 		
 		_progressView = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
 		_progressView.translatesAutoresizingMaskIntoConstraints = NO;
 		_progressView.trackImage = [UIImage alloc];
-		[_toolbar addSubview:_progressView];
+		[self addSubview:_progressView];
 		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[_progressView(2)]|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_progressView)]];
 		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[_progressView]|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_progressView)]];
 		
@@ -207,23 +209,25 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 		_imageView.layer.cornerRadius = 3;
 		_imageView.layer.masksToBounds = YES;
 		
-		[self.toolbar addSubview:_imageView];
+		[self addSubview:_imageView];
 		
 		_shadowView = [UIView new];
 		_shadowView.backgroundColor = [UIColor colorWithWhite:169.0 / 255.0 alpha:1.0];
-		[self.toolbar addSubview:_shadowView];
+		[self addSubview:_shadowView];
 		
 		_highlightView = [[UIView alloc] initWithFrame:self.bounds];
 		_highlightView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 		_highlightView.userInteractionEnabled = NO;
 		[_highlightView setBackgroundColor:[[UIColor blackColor] colorWithAlphaComponent:0.1]];
 		_highlightView.alpha = 0.0;
-		[self.toolbar addSubview:_highlightView];
+		[self addSubview:_highlightView];
 		
 		_resolvedStyle = _LNPopupResolveBarStyleFromBarStyle(_barStyle);
 		
 		_marqueeScrollEnabled = [NSProcessInfo processInfo].operatingSystemVersion.majorVersion < 10;
 		_coordinateMarqueeScroll = YES;
+		
+		self.isAccessibilityElement = NO;
 	}
 	
 	return self;
@@ -240,10 +244,10 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 		[_toolbar layoutIfNeeded];
 	}];
 	
-	[_toolbar bringSubviewToFront:_highlightView];
-	[_toolbar bringSubviewToFront:_imageView];
-	[_toolbar bringSubviewToFront:_titlesView];
-	[_toolbar bringSubviewToFront:_shadowView];
+	[self bringSubviewToFront:_highlightView];
+	[self bringSubviewToFront:_imageView];
+	[self bringSubviewToFront:_titlesView];
+	[self bringSubviewToFront:_shadowView];
 	
 	_shadowView.frame = CGRectMake(0, 0, self.toolbar.bounds.size.width, 1 / self.window.screen.scale);
 	_shadowView.hidden = _resolvedStyle == LNPopupBarStyleProminent;
@@ -486,11 +490,11 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 			 
 			 if(_resolvedStyle == LNPopupBarStyleCompact)
 			 {
-				 leftMargin = itemView.frame.origin.x + itemView.frame.size.width + 10;
+				 leftMargin = MAX(itemView.frame.origin.x + itemView.frame.size.width + 10, leftMargin);
 			 }
-			 else if(firstRightItemView == nil)
+			 else
 			 {
-				 firstRightItemView = itemView;
+				 firstRightItemView = (firstRightItemView == nil || itemView.frame.origin.x < firstRightItemView.frame.origin.x) ? itemView : firstRightItemView;
 			 }
 		 }];
 		
@@ -498,10 +502,7 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 		 {
 			 UIView* itemView = [barButtonItem valueForKey:@"view"];
 			 
-			 if(firstRightItemView == nil)
-			 {
-				 firstRightItemView = itemView;
-			 }
+			 firstRightItemView = (firstRightItemView == nil || itemView.frame.origin.x < firstRightItemView.frame.origin.x) ? itemView : firstRightItemView;
 		 }];
 		
 		rightMargin = (firstRightItemView == nil ? self.bounds.size.width - 10 : firstRightItemView.frame.origin.x) - (_resolvedStyle == LNPopupBarStyleProminent ? 5 : 10);
@@ -520,7 +521,7 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 			}
 			
 			NSMutableParagraphStyle* paragraph = [NSMutableParagraphStyle new];
-			if(_resolvedStyle == LNPopupBarHeightCompact)
+			if(_resolvedStyle == LNPopupBarStyleCompact)
 			{
 				paragraph.alignment = NSTextAlignmentCenter;
 			}
