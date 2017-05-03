@@ -673,6 +673,8 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 		return;
 	}
 	
+    // SPOKE - add white bg color
+    _imageView.backgroundColor = [UIColor whiteColor];
 	_imageView.image = _image;
 	_imageView.hidden = _image == nil;
 	
