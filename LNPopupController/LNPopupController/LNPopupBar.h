@@ -8,7 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import <LNPopupController/LNPopupItem.h>
-#import <LNPOpupController/LNPopupCustomBarViewController.h>
+#import <LNPopupController/LNPopupCustomBarViewController.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -37,6 +37,26 @@ typedef NS_ENUM(NSUInteger, LNPopupBarStyle) {
 	 * Do not set this style directly. Instead set LNPopupBar.customBarViewController and the framework will use this style.
 	 */
 	LNPopupBarStyleCustom
+};
+
+typedef NS_ENUM(NSUInteger, LNPopupBarProgressViewStyle) {
+	/**
+	 * Use the most appropriate style for the current operating system version; uses none for iOS 10 and above, otherwise bottom.
+	 */
+	LNPopupBarProgressViewStyleDefault,
+	
+	/**
+	 * Progress view on bottom
+	 */
+	LNPopupBarProgressViewStyleBottom,
+    /**
+     * Progress view on bottom
+     */
+    LNPopupBarProgressViewStyleTop,
+	/**
+	 * No progress view
+	 */
+	LNPopupBarProgressViewStyleNone
 };
 
 @protocol LNPopupBarPreviewingDelegate <NSObject>
@@ -88,6 +108,11 @@ typedef NS_ENUM(NSUInteger, LNPopupBarStyle) {
  *  The popup bar style.
  */
 @property (nonatomic, assign) LNPopupBarStyle barStyle UI_APPEARANCE_SELECTOR;
+
+/**
+ *  The popup bar's progress style.
+ */
+@property (nonatomic, assign) LNPopupBarProgressViewStyle progressViewStyle;
 
 /**
  *  The popup bar background style that specifies its appearance.
